@@ -15,19 +15,29 @@ class FlutterAudioRecorder {
   String _path;
   String _extension;
   Recording _recording;
-  int _sampleRate;
 
   Future _initRecorder;
+
   Future get initialized => _initRecorder;
+
   Recording get recording => _recording;
 
   FlutterAudioRecorder(String path,
-      {AudioFormat audioFormat, int sampleRate = 16000}) {
-    _initRecorder = _init(path, audioFormat, sampleRate);
+      {AudioFormat audioFormat,
+      EncodingBitrate bitrate = EncodingBitrate.ENCODING_PCM_16BIT,
+      ChannelMask channelMask = ChannelMask.CHANNEL_OUT_MONO,
+      SampleRate sampleRate = SampleRate.Khz16}) {
+    _initRecorder = _init(
+        path, audioFormat, bitrate, channelMask, sampleRate);
   }
 
   /// Initialized recorder instance
-  Future _init(String path, AudioFormat audioFormat, int sampleRate) async {
+  Future _init(
+      String path,
+      AudioFormat audioFormat,
+      EncodingBitrate bitrate,
+      ChannelMask channelMask,
+      SampleRate sampleRate) async {
     String extension;
     String extensionInPath;
     if (path != null) {
@@ -64,11 +74,9 @@ class FlutterAudioRecorder {
     }
     _path = path;
     _extension = extension;
-    _sampleRate = sampleRate;
-
     Map<String, Object> response;
     var result = await _channel.invokeMethod('init',
-        {"path": _path, "extension": _extension, "sampleRate": _sampleRate});
+        {"path": _path, "extension": _extension, "sampleRate": sampleRate.toString(), "encodingBitrate": bitrate.toString(), "channelMask": channelMask.toString()});
 
     if (result != false) {
       response = Map.from(result);
@@ -118,10 +126,10 @@ class FlutterAudioRecorder {
   /// Ask for current status of recording
   /// Returns the result of current recording status
   /// Metering level, Duration, Status...
-  Future<Recording> current({int channel = 0}) async {
+  Future<Recording> current() async {
     Map<String, Object> response;
 
-    var result = await _channel.invokeMethod('current', {"channel": channel});
+    var result = await _channel.invokeMethod('current');
 
     if (result != null && _recording?.status != RecordingStatus.Stopped) {
       response = Map.from(result);
@@ -271,3 +279,13 @@ enum AudioFormat {
   AAC,
   WAV,
 }
+
+enum EncodingBitrate {
+  ENCODING_PCM_8BIT,
+  ENCODING_PCM_16BIT,
+  ENCODING_PCM_FLOAT
+}
+
+enum ChannelMask { CHANNEL_OUT_MONO, CHANNEL_OUT_STEREO }
+
+enum SampleRate { Khz192, Khz48, Khz22, Khz16, }

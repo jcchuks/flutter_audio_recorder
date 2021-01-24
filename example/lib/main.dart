@@ -4,6 +4,7 @@ import 'dart:io' as io;
 import 'package:audioplayers/audioplayers.dart';
 import 'package:file/file.dart';
 import 'package:file/local.dart';
+//import 'package:file/record_replay.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_audio_recorder/flutter_audio_recorder.dart';
@@ -46,6 +47,7 @@ class RecorderExampleState extends State<RecorderExample> {
   FlutterAudioRecorder _recorder;
   Recording _current;
   RecordingStatus _currentStatus = RecordingStatus.Unset;
+  String _debugConfig = "";
 
   @override
   void initState() {
@@ -62,6 +64,7 @@ class RecorderExampleState extends State<RecorderExample> {
         child: new Column(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: <Widget>[
+              buildAudioConfig(),
               new Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: <Widget>[
@@ -116,6 +119,7 @@ class RecorderExampleState extends State<RecorderExample> {
                   ),
                 ],
               ),
+             Text(_debugConfig),
               new Text("Status : $_currentStatus"),
               new Text('Avg Power: ${_current?.metering?.averagePower}'),
               new Text('Peak Power: ${_current?.metering?.peakPower}'),
@@ -151,12 +155,17 @@ class RecorderExampleState extends State<RecorderExample> {
         // .wav <---> AudioFormat.WAV
         // .mp4 .m4a .aac <---> AudioFormat.AAC
         // AudioFormat is optional, if given value, will overwrite path extension when there is conflicts.
+        setState(() {
+          _debugConfig = "Bitrate: $_bitrate || Channel mask: $_channelMask || SampleRate: $_sampleRate";
+        });
+
+        print(_debugConfig);
         _recorder =
-            FlutterAudioRecorder(customPath, audioFormat: AudioFormat.WAV);
+            FlutterAudioRecorder(customPath, audioFormat: AudioFormat.WAV, bitrate: _bitrate, channelMask: _channelMask, sampleRate: _sampleRate);
 
         await _recorder.initialized;
         // after initialization
-        var current = await _recorder.current(channel: 0);
+        var current = await _recorder.current();
         print(current);
         // should be "Initialized", if all working fine
         setState(() {
@@ -176,7 +185,7 @@ class RecorderExampleState extends State<RecorderExample> {
   _start() async {
     try {
       await _recorder.start();
-      var recording = await _recorder.current(channel: 0);
+      var recording = await _recorder.current();
       setState(() {
         _current = recording;
       });
@@ -187,7 +196,7 @@ class RecorderExampleState extends State<RecorderExample> {
           t.cancel();
         }
 
-        var current = await _recorder.current(channel: 0);
+        var current = await _recorder.current();
         // print(current.status);
         setState(() {
           _current = current;
@@ -253,5 +262,77 @@ class RecorderExampleState extends State<RecorderExample> {
   void onPlayAudio() async {
     AudioPlayer audioPlayer = AudioPlayer();
     await audioPlayer.play(_current.path, isLocal: true);
+  }
+
+  EncodingBitrate _bitrate = EncodingBitrate.ENCODING_PCM_16BIT;
+  ChannelMask _channelMask = ChannelMask.CHANNEL_OUT_MONO;
+  SampleRate _sampleRate = SampleRate.Khz16;
+
+  void updateSettings()
+  {
+    print("$_currentStatus");
+    if(_currentStatus == RecordingStatus.Initialized ||
+    _currentStatus == RecordingStatus.Stopped)
+      {
+        _init();
+      }
+  }
+
+  Widget buildAudioConfig() {
+    return Container(
+      padding: EdgeInsets.symmetric(vertical: 5, horizontal: 3),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          DropdownButton(
+            isDense: true,
+            value: _bitrate,
+            items: EncodingBitrate.values.map((EncodingBitrate e) {
+              return DropdownMenuItem(
+                child: Text(e.toString().split(".")[1]),
+                value: e,
+              );
+            }).toList(),
+            onChanged: (EncodingBitrate value) {
+              setState(() {
+                _bitrate = value;
+                updateSettings();
+              });
+            },
+            hint: Text("Encoding Bitrate"),
+          ),
+          DropdownButton(
+            value: _channelMask,
+            items: ChannelMask.values.map((ChannelMask channelType) {
+              return DropdownMenuItem(
+                child: Text(channelType.toString().split(".")[1]),
+                value: channelType,
+              );
+            }).toList(),
+            onChanged: (ChannelMask value) {
+              _channelMask = value;
+              updateSettings();
+            },
+            hint: Text("Channel Mask"),
+          ),
+          DropdownButton(
+            value: _sampleRate,
+            items: SampleRate.values.map((SampleRate _rate) {
+              return DropdownMenuItem(
+                child: Text(_rate.toString().split(".")[1]),
+                value: _rate,
+              );
+            }).toList(),
+            onChanged: (SampleRate value) {
+              setState(() {
+                _sampleRate = value;
+                updateSettings();
+              });
+            },
+            hint: Text("Sample Rate"),
+          )
+        ],
+      ),
+    );
   }
 }
