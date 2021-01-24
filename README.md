@@ -6,16 +6,15 @@
 </a>
 </p>
 
-Includes the option to select the bit rate (8, 16 & 32), the sample rate (192Khz, 48Khz, 22Khz, 16Khz), and the channels(mono or stereo)
+## Includes the option to select the bit rate (8, 16 & 32), the sample rate (192Khz, 48Khz, 22Khz, 16Khz), and the channels(mono or stereo)
+## Support for android only.
 
 English | [简体中文](./README-zh_CN.md)
 
 Flutter Audio Record Plugin that supports `Record` `Pause` `Resume` `Stop` and provide access to audio level metering properties `average power` `peak power`
-#### Works for both `Android` and `iOS`
+#### New features support only android.
 
-<img src="https://user-images.githubusercontent.com/10917606/64927086-b2bcda00-d838-11e9-9ab8-bad78a95f02c.gif" width="30%" height="30%" />
-
-![alt text](./screenshot.png)
+![alt text](./example/screenshot.png)
 
 
 #### Code Samples: 
