@@ -37,10 +37,10 @@ public class FlutterAudioRecorderPlugin implements MethodCallHandler, PluginRegi
 
     private Registrar registrar;
     private int mSampleRate = 16000; // 16Khz
-    String mChannelMask = "ChannelMask.CHANNEL_IN_MONO";
-    String mEncodingBitrate = "EncodingBitrate.ENCODING_PCM_16BIT";
-    private int numberOfChannels = 1;
-    private byte bitsPerSample = 16; // we use 16bit
+    int mChannelMask = 4; //https://developer.android.com/reference/android/media/AudioFormat#CHANNEL_OUT_MONO
+    int mEncodingBitrate = 2; //https://developer.android.com/reference/android/media/AudioFormat#ENCODING_PCM_16BIT
+    private int numberOfChannels = 1; //CHANNEL_OUT_MONO
+    private byte bitsPerSample = 16; //ENCODING_PCM_16BIT
     private AudioRecord mRecorder = null;
     private String mFilePath;
     private String mExtension;
@@ -185,9 +185,13 @@ public class FlutterAudioRecorderPlugin implements MethodCallHandler, PluginRegi
         if (rate == "SampleRate.Khz16") {
             sample = 16000;
         } else if (rate == "SampleRate.Khz22") {
-            sample = 22000;
+            sample = 22050;
         } else if (rate == "SampleRate.Khz48") {
             sample = 48000;
+        }else if (rate == "SampleRate.Khz44") {
+            sample = 44100;
+        }else if (rate == "SampleRate.Khz11") {
+            sample = 11025;
         }
         return sample;
     }
@@ -197,13 +201,13 @@ public class FlutterAudioRecorderPlugin implements MethodCallHandler, PluginRegi
 
         mFilePath = call.argument("path").toString();
         mExtension = call.argument("extension").toString();
-        mChannelMask = call.argument("channelMask").toString();
-        mEncodingBitrate = call.argument("encodingBitrate").toString();
+        mChannelMask = getChannelMask(call.argument("channelMask").toString());
+        mEncodingBitrate = getEncodingBitrate(call.argument("encodingBitrate").toString());
         mSampleRate = getSampleRate(call.argument("sampleRate").toString());
         Log.d(LOG_NAME, "mEncodingBitrate: "+ mEncodingBitrate);
         bufferSize = AudioRecord.getMinBufferSize(mSampleRate,
-                getChannelMask(mChannelMask),
-                getEncodingBitrate(mEncodingBitrate));
+                mChannelMask,
+                mEncodingBitrate);
         mStatus = "initialized";
         HashMap<String, Object> initResult = new HashMap<>();
         initResult.put("duration", 0);
@@ -230,7 +234,7 @@ public class FlutterAudioRecorderPlugin implements MethodCallHandler, PluginRegi
     }
 
     private void handleStart(MethodCall call, Result result) {
-        mRecorder = new AudioRecord(MediaRecorder.AudioSource.MIC, mSampleRate, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT, bufferSize);
+        mRecorder = new AudioRecord(MediaRecorder.AudioSource.MIC, mSampleRate, mChannelMask, mEncodingBitrate, bufferSize);
         try {
             mFileOutputStream = new FileOutputStream(getTempFilename());
         } catch (FileNotFoundException e) {
@@ -344,6 +348,7 @@ public class FlutterAudioRecorderPlugin implements MethodCallHandler, PluginRegi
         long longSampleRate = mSampleRate;
         int channels = numberOfChannels;
         long byteRate = (bitsPerSample * mSampleRate * channels) / 8;
+        int blockAlign = (bitsPerSample * numberOfChannels)/8;
 
         byte[] data = new byte[bufferSize];
 
@@ -354,7 +359,7 @@ public class FlutterAudioRecorderPlugin implements MethodCallHandler, PluginRegi
             totalDataLen = totalAudioLen + 36;
 
             WriteWaveFileHeader(out, totalAudioLen, totalDataLen,
-                    longSampleRate, channels, byteRate);
+                    longSampleRate, channels, byteRate, blockAlign);
 
             while (in.read(data) != -1) {
                 out.write(data);
@@ -370,7 +375,7 @@ public class FlutterAudioRecorderPlugin implements MethodCallHandler, PluginRegi
     }
 
     private void WriteWaveFileHeader(FileOutputStream out, long totalAudioLen,
-                                     long totalDataLen, long longSampleRate, int channels, long byteRate)
+                                     long totalDataLen, long longSampleRate, int channels, long byteRate, int blockAlign)
             throws IOException {
         byte[] header = new byte[44];
 
@@ -406,10 +411,10 @@ public class FlutterAudioRecorderPlugin implements MethodCallHandler, PluginRegi
         header[29] = (byte) ((byteRate >> 8) & 0xff);
         header[30] = (byte) ((byteRate >> 16) & 0xff);
         header[31] = (byte) ((byteRate >> 24) & 0xff);
-        header[32] = (byte) (1); // block align
-        header[33] = 0;
-        header[34] = bitsPerSample; // bits per sample
-        header[35] = 0;
+        header[32] = (byte)  (blockAlign & 0xff); // block align
+        header[33] = (byte) ((blockAlign >> 8) & 0xff);
+        header[34] = (byte) (bitsPerSample & 0xff); ; // bits per sample
+        header[35] = (byte) ((bitsPerSample >> 8) & 0xff);;
         header[36] = 'd';
         header[37] = 'a';
         header[38] = 't';

@@ -288,4 +288,4 @@ enum EncodingBitrate {
 
 enum ChannelMask { CHANNEL_OUT_MONO, CHANNEL_OUT_STEREO }
 
-enum SampleRate { Khz192, Khz48, Khz22, Khz16, }
+enum SampleRate { Khz192, Khz48, Khz44, Khz22, Khz16, Khz11 }
