@@ -27,17 +27,12 @@ class FlutterAudioRecorder {
       EncodingBitrate bitrate = EncodingBitrate.ENCODING_PCM_16BIT,
       ChannelMask channelMask = ChannelMask.CHANNEL_OUT_MONO,
       SampleRate sampleRate = SampleRate.Khz16}) {
-    _initRecorder = _init(
-        path, audioFormat, bitrate, channelMask, sampleRate);
+    _initRecorder = _init(path, audioFormat, bitrate, channelMask, sampleRate);
   }
 
   /// Initialized recorder instance
-  Future _init(
-      String path,
-      AudioFormat audioFormat,
-      EncodingBitrate bitrate,
-      ChannelMask channelMask,
-      SampleRate sampleRate) async {
+  Future _init(String path, AudioFormat audioFormat, EncodingBitrate bitrate,
+      ChannelMask channelMask, SampleRate sampleRate) async {
     String extension;
     String extensionInPath;
     if (path != null) {
@@ -75,13 +70,17 @@ class FlutterAudioRecorder {
     _path = path;
     _extension = extension;
     Map<String, Object> response;
-    var result = await _channel.invokeMethod('init',
-        {"path": _path, "extension": _extension, "sampleRate": sampleRate.toString(), "encodingBitrate": bitrate.toString(), "channelMask": channelMask.toString()});
+    var result = await _channel.invokeMethod('init', {
+      "path": _path,
+      "extension": _extension,
+      "sampleRate": sampleRate.toString(),
+      "encodingBitrate": bitrate.toString(),
+      "channelMask": channelMask.toString()
+    });
 
     if (result != false) {
       response = Map.from(result);
     }
-
     _recording = new Recording()
       ..status = _stringToRecordingStatus(response['status'])
       ..metering = new AudioMetering(
